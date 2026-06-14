@@ -1,17 +1,14 @@
 import { NextRequest } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { successResponse, errorResponse } from '@/lib/api'
+import { getAuth } from '@/lib/auth-helpers'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return errorResponse('UNAUTHORIZED', 'Authentication required', 401)
-  }
+  const auth = await getAuth(request)
+  if (!auth) return errorResponse('UNAUTHORIZED', 'Authentication required', 401)
 
   const { id } = await params
 
@@ -23,9 +20,7 @@ export async function GET(
     },
   })
 
-  if (!project) {
-    return errorResponse('NOT_FOUND', 'Project not found', 404)
-  }
+  if (!project) return errorResponse('NOT_FOUND', 'Project not found', 404)
 
   return successResponse(project)
 }
@@ -34,10 +29,8 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return errorResponse('UNAUTHORIZED', 'Authentication required', 401)
-  }
+  const auth = await getAuth(request)
+  if (!auth) return errorResponse('UNAUTHORIZED', 'Authentication required', 401)
 
   const { id } = await params
   const body = await request.json()
@@ -55,10 +48,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return errorResponse('UNAUTHORIZED', 'Authentication required', 401)
-  }
+  const auth = await getAuth(request)
+  if (!auth) return errorResponse('UNAUTHORIZED', 'Authentication required', 401)
 
   const { id } = await params
 

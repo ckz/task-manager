@@ -1,15 +1,12 @@
 import { NextRequest } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { successResponse, errorResponse, getPagination } from '@/lib/api'
+import { getAuth } from '@/lib/auth-helpers'
 import { generateApiKey, hashApiKey } from '@/lib/agent-auth'
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return errorResponse('UNAUTHORIZED', 'Authentication required', 401)
-  }
+  const auth = await getAuth(request)
+  if (!auth) return errorResponse('UNAUTHORIZED', 'Authentication required', 401)
 
   const { page, limit, skip } = getPagination(request.nextUrl.searchParams)
 
@@ -26,27 +23,19 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return errorResponse('UNAUTHORIZED', 'Authentication required', 401)
-  }
+  const auth = await getAuth(request)
+  if (!auth) return errorResponse('UNAUTHORIZED', 'Authentication required', 401)
 
   const body = await request.json()
   const { name, capabilities } = body
 
-  if (!name) {
-    return errorResponse('VALIDATION_ERROR', 'Name is required')
-  }
+  if (!name) return errorResponse('VALIDATION_ERROR', 'Name is required')
 
   const apiKey = generateApiKey()
   const apiKeyHash = await hashApiKey(apiKey)
 
   const agent = await db.agent.create({
-    data: {
-      name,
-      apiKeyHash,
-      capabilities,
-    },
+    data: { name, apiKeyHash, capabilities },
   })
 
   return successResponse({ ...agent, apiKey })

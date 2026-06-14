@@ -1,17 +1,15 @@
 import { NextRequest } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { successResponse, errorResponse, getPagination } from '@/lib/api'
+import { getAuth } from '@/lib/auth-helpers'
+import { TaskStatus, TaskPriority } from '@/generated/prisma/enums'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return errorResponse('UNAUTHORIZED', 'Authentication required', 401)
-  }
+  const auth = await getAuth(request)
+  if (!auth) return errorResponse('UNAUTHORIZED', 'Authentication required', 401)
 
   const { id: projectId } = await params
   const { page, limit, skip } = getPagination(request.nextUrl.searchParams)
@@ -19,8 +17,8 @@ export async function GET(
   const priority = request.nextUrl.searchParams.get('priority')
 
   const where: Record<string, unknown> = { projectId }
-  if (status) where.status = status
-  if (priority) where.priority = priority
+  if (status) where.status = status as TaskStatus
+  if (priority) where.priority = priority as TaskPriority
 
   const [tasks, total] = await Promise.all([
     db.task.findMany({
@@ -44,18 +42,14 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return errorResponse('UNAUTHORIZED', 'Authentication required', 401)
-  }
+  const auth = await getAuth(request)
+  if (!auth) return errorResponse('UNAUTHORIZED', 'Authentication required', 401)
 
   const { id: projectId } = await params
   const body = await request.json()
   const { title, description, priority, parentTaskId, assignedToUserId, assignedToAgentId, dueDate, metadata } = body
 
-  if (!title) {
-    return errorResponse('VALIDATION_ERROR', 'Title is required')
-  }
+  if (!title) return errorResponse('VALIDATION_ERROR', 'Title is required')
 
   const task = await db.task.create({
     data: {
@@ -67,7 +61,8 @@ export async function POST(
       assignedToUserId,
       assignedToAgentId,
       dueDate: dueDate ? new Date(dueDate) : null,
-      createdByUserId: session.user.id,
+      createdByUserId: auth.type === 'user' ? auth.id : null,
+      createdByAgentId: auth.type === 'agent' ? auth.id : null,
       metadata,
     },
   })
