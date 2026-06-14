@@ -1,3 +1,4 @@
+import { Prisma } from '@/generated/prisma/client'
 import { db } from './db'
 
 interface LogActivityParams {
@@ -6,7 +7,7 @@ interface LogActivityParams {
   action: 'CREATED' | 'UPDATED' | 'DELETED' | 'STATUS_CHANGED'
   actorType: 'USER' | 'AGENT'
   actorId: string
-  changes?: Record<string, unknown>
+  changes?: Prisma.InputJsonValue
 }
 
 export async function logActivity(params: LogActivityParams) {
@@ -17,7 +18,7 @@ export async function logActivity(params: LogActivityParams) {
       action: params.action,
       actorType: params.actorType,
       actorId: params.actorId,
-      changes: params.changes || null,
+      changes: params.changes ?? undefined,
     },
   })
 }

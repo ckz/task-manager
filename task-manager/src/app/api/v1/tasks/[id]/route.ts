@@ -23,7 +23,6 @@ export async function GET(
       subtasks: true,
       assignedToUser: { select: { id: true, name: true, email: true } },
       assignedToAgent: { select: { id: true, name: true } },
-      activityLogs: { orderBy: { createdAt: 'desc' }, take: 20 },
     },
   })
 
@@ -31,7 +30,13 @@ export async function GET(
     return errorResponse('NOT_FOUND', 'Task not found', 404)
   }
 
-  return successResponse(task)
+  const activityLogs = await db.activityLog.findMany({
+    where: { entityId: id, entityType: 'TASK' },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+  })
+
+  return successResponse({ ...task, activityLogs })
 }
 
 export async function PATCH(

@@ -7,8 +7,8 @@ interface TaskCardProps {
     title: string
     status: string
     priority: string
-    assignedToUser?: { name: string } | null
-    assignedToAgent?: { name: string } | null
+    assignedToUser?: { name: string | null } | null
+    assignedToAgent?: { name: string | null } | null
   }
 }
 
