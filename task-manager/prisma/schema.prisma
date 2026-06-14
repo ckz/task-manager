@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -10,4 +5,149 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  avatarUrl String?  @map("avatar_url")
+  googleId  String?  @unique @map("google_id")
+  role      Role     @default(MEMBER)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  assignedTasks   Task[]    @relation("TaskAssignedToUser")
+  createdTasks    Task[]    @relation("TaskCreatedByUser")
+  createdProjects Project[]
+
+  @@map("users")
+}
+
+model Project {
+  id          String        @id @default(uuid())
+  name        String
+  description String?
+  status      ProjectStatus @default(ACTIVE)
+  createdBy   String        @map("created_by")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  metadata    Json?
+
+  creator User   @relation(fields: [createdBy], references: [id])
+  tasks   Task[]
+
+  @@map("projects")
+}
+
+model Task {
+  id                String       @id @default(uuid())
+  projectId         String       @map("project_id")
+  parentTaskId      String?      @map("parent_task_id")
+  title             String
+  description       String?
+  status            TaskStatus   @default(TODO)
+  priority          TaskPriority @default(MEDIUM)
+  assignedToUserId  String?      @map("assigned_to_user_id")
+  assignedToAgentId String?      @map("assigned_to_agent_id")
+  dueDate           DateTime?    @map("due_date")
+  createdByUserId   String?      @map("created_by_user_id")
+  createdByAgentId  String?      @map("created_by_agent_id")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+  metadata          Json?
+
+  project        Project    @relation(fields: [projectId], references: [id])
+  parentTask     Task?      @relation("Subtasks", fields: [parentTaskId], references: [id])
+  subtasks       Task[]     @relation("Subtasks")
+  assignedToUser User?      @relation("TaskAssignedToUser", fields: [assignedToUserId], references: [id])
+  assignedToAgent Agent?    @relation("TaskAssignedToAgent", fields: [assignedToAgentId], references: [id])
+  createdByUser  User?      @relation("TaskCreatedByUser", fields: [createdByUserId], references: [id])
+  createdByAgent Agent?     @relation("TaskCreatedByAgent", fields: [createdByAgentId], references: [id])
+  activityLogs   ActivityLog[]
+
+  @@map("tasks")
+}
+
+model Agent {
+  id           String      @id @default(uuid())
+  name         String
+  apiKeyHash   String      @map("api_key_hash")
+  capabilities Json?
+  lastSeenAt   DateTime?   @map("last_seen_at")
+  status       AgentStatus @default(ACTIVE)
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  assignedTasks Task[] @relation("TaskAssignedToAgent")
+  createdTasks  Task[] @relation("TaskCreatedByAgent")
+  activityLogs  ActivityLog[]
+
+  @@map("agents")
+}
+
+model ActivityLog {
+  id         String     @id @default(uuid())
+  entityType EntityType @map("entity_type")
+  entityId   String     @map("entity_id")
+  action     Action
+  actorType  ActorType  @map("actor_type")
+  actorId    String     @map("actor_id")
+  changes    Json?
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  task Task? @relation(fields: [entityId], references: [id])
+
+  @@map("activity_logs")
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum ProjectStatus {
+  ACTIVE
+  ARCHIVED
+  COMPLETED
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum AgentStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum EntityType {
+  PROJECT
+  TASK
+  AGENT
+}
+
+enum Action {
+  CREATED
+  UPDATED
+  DELETED
+  STATUS_CHANGED
+}
+
+enum ActorType {
+  USER
+  AGENT
 }
