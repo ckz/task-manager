@@ -1,12 +1,25 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { redirect } from 'next/navigation'
-import { signOut } from 'next-auth/react'
+'use client'
 
-export default async function SettingsPage() {
-  const session = await getServerSession(authOptions)
+import { useSession, signOut } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
+
+export default function SettingsPage() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin')
+    }
+  }, [status, router])
+
+  if (status === 'loading') {
+    return <div>Loading...</div>
+  }
+
   if (!session?.user) {
-    redirect('/auth/signin')
+    return null
   }
 
   return (
