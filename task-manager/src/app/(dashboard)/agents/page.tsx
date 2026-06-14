@@ -48,7 +48,7 @@ export default function AgentsPage() {
       {showApiKey && (
         <div className="mb-4 rounded border border-yellow-200 bg-yellow-50 p-4">
           <p className="font-medium text-yellow-800">
-            API Key (save this - it won't be shown again):
+            API Key (save this - it won&apos;t be shown again):
           </p>
           <code className="mt-2 block break-all text-sm">{showApiKey}</code>
           <button
@@ -61,7 +61,7 @@ export default function AgentsPage() {
       )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {agents?.map((agent: any) => (
+        {agents?.map((agent: { id: string; name: string; status: string; lastSeenAt: Date | null; capabilities: unknown }) => (
           <AgentCard key={agent.id} agent={agent} />
         ))}
       </div>
